@@ -160,7 +160,7 @@ if (UserEditChoice.equals("2")){
     while (true){
         boolean UserEditChoiceBoolean = false;
          String UserEditTitleQuestionChoice = scanner.nextLine();
-    for (Quiz q: MassFlashCardHolder){
+    for (Quiz q: MassFlashCardHolder){                                                            // CHECK IF THIS ENDS, THE LOOP
         if (q.QuizName.equalsIgnoreCase(UserEditTitleQuestionChoice)){
             UserEditChoiceBoolean = true;
             for (FlashCards qq: q.cards){
@@ -221,16 +221,47 @@ if (UserEditChoice.equals("2")){
 
                                                                                                 // if user Chooses Answer
             
-                System.out.println("All Questions shown below: ");
+                System.out.println("All Answers shown below: ");
                 for (FlashCards qqq: q.cards){                                                  //If User Chooses Question
-                System.out.println(qqq.QuizInfo);
+                System.out.println(qqq.QuizAnswer);
 
                 }
-                
 
+                System.out.println("Please type the answer you wish to change!");
+                while (true){
+              String AnswerToChange = scanner.nextLine();
+              boolean AnswerIsFound = false;
+
+              for (FlashCards qqq: q.cards){
+                if (qqq.QuizAnswer.equalsIgnoreCase(AnswerToChange)){
+                    System.out.println("Type in what you wish to replace it with.");
+                   String BrandNewAnswer = scanner.nextLine();
+                   qqq.QuizAnswer = BrandNewAnswer ;
+                   System.out.println("Your answer has been replaced.");
+                   AnswerIsFound = true;
+                   break;
+                }
+              }
                
-               
+            if (AnswerIsFound){
                 break;
+            }
+            else if (AnswerToChange.equalsIgnoreCase("exit")){
+                break;
+            }
+            
+            else {
+                System.out.println("Answer is not found, please try again or type exit.");
+            }
+            
+            }
+            
+
+                
+                
+               
+               
+                
             
             }
             
