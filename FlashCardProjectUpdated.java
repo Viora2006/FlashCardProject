@@ -217,7 +217,7 @@ if (UserEditChoice.equals("2")){
         
         }
 
-        if (QuestionOrAnswer.equalsIgnoreCase("Answer")){
+        else if (QuestionOrAnswer.equalsIgnoreCase("Answer")){        //most recent change
 
                                                                                                 // if user Chooses Answer
             
@@ -264,6 +264,12 @@ if (UserEditChoice.equals("2")){
                 
             
             }
+
+            else {
+                System.out.println("Invalid");
+            }
+
+        
             
             
             
@@ -426,6 +432,7 @@ public static class Quiz {
          return CreatedTitle;
 
     }
+
 
 }
 
