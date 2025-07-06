@@ -9,14 +9,19 @@ import java.sql.Statement;
 public class FlashCardProjectUpdated{
 static Scanner scanner = new Scanner(System.in);
 
-
+// javac -cp ".;C:\path\to\sqlite-jdbc.jar" FlashCardProjectUpdated.java
+// java -cp ".;sqlite-jdbc.jar" FlashCardProjectUpdated
+// Class pathways shown above^^^
 
 public static void main(String[] args ){
     ArrayList<Quiz> MassFlashCardHolder = new ArrayList<>();
     createUsersTable();
     testDatabaseConnection();
+   boolean InitialBoolean = false;
+    int userId = -1;
+    while (!InitialBoolean){
 
-  int userId = -1;
+ 
   
 System.out.println("1. Register"); 
   System.out.println("2. Login");     
@@ -29,14 +34,24 @@ System.out.println("1. Register");
   }
   else if (AccountChoice.equals("2")){
      userId = loginUser();
-    if (userId == -1) return; 
-  } 
+    if (userId == -1) continue; 
+  MassFlashCardHolder = loadUserQuizzes(userId); 
+    break;
+}
+  
+  else if (AccountChoice.equals("3")) {
+    System.out.println("goodbye");
+  }
 
   else {
-    return;
+    InitialBoolean = true;
   }
   
-  MassFlashCardHolder = loadUserQuizzes(userId);
+
+  
+}
+
+System.out.println("Welcome to the Flashcard App!");
   
   while (true) {
         
