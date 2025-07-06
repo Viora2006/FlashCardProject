@@ -1,6 +1,10 @@
 
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 public class FlashCardProjectUpdated{
 static Scanner scanner = new Scanner(System.in);
@@ -9,8 +13,34 @@ static Scanner scanner = new Scanner(System.in);
 
 public static void main(String[] args ){
     ArrayList<Quiz> MassFlashCardHolder = new ArrayList<>();
-    while (true) {
-    
+    createUsersTable();
+    testDatabaseConnection();
+
+  int userId = -1;
+  
+System.out.println("1. Register"); 
+  System.out.println("2. Login");     
+  System.out.println("3. Exit");
+  String AccountChoice = scanner.nextLine();
+
+
+  if (AccountChoice.equals("1")){
+    RegisterAccount();
+  }
+  else if (AccountChoice.equals("2")){
+     userId = loginUser();
+    if (userId == -1) return; 
+  } 
+
+  else {
+    return;
+  }
+  
+  MassFlashCardHolder = loadUserQuizzes(userId);
+  
+  while (true) {
+        
+ 
 
     
 System.out.println("Hello this is a flashcard creator/quizzer");
@@ -26,6 +56,7 @@ String Choice = scanner.nextLine();
 if (Choice.equals("1")){
   Quiz mainquiz = CreateQuiz(MassFlashCardHolder);
   MassFlashCardHolder.add(mainquiz);
+  saveQuizToDatabase(mainquiz, userId);
   System.out.println("Your Quiz has been created!");
   
 
@@ -378,7 +409,7 @@ public static class Quiz {
 
     public static Quiz CreateQuiz(ArrayList<Quiz> MassFlashCardHolder){
         System.out.println("Lets begin creating your quiz!");
-        ArrayList <String> RecentQuiz = new ArrayList<>();
+        
         ArrayList <FlashCards> RecentCreatedQuiz = new ArrayList<>();
         for ( int i = 0; i < 100 ; i++){
            
@@ -434,7 +465,262 @@ public static class Quiz {
     }
 
 
+
+
+
+
+   public static boolean testDatabaseConnection() {
+    String url = "jdbc:sqlite:C:/Users/tyler/Downloads/QuizAppAttempt/quizAppAttempt.db";
+    try (Connection conn = DriverManager.getConnection(url)) {
+        if (conn != null) {
+            System.out.println("Successfully connected to SQLite database!");
+            return true;
+        }
+    } catch (SQLException e) {
+        System.out.println("Connection failed!");
+        e.printStackTrace();
+    }
+    return false;
 }
+
+public static void createUsersTable() {
+    String url = "jdbc:sqlite:C:/Users/tyler/Downloads/QuizAppAttempt/quizAppAttempt.db";
+
+    // SQL statement as a Java String
+    String createUsersTable = "CREATE TABLE IF NOT EXISTS users ("
+               + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+               + "username TEXT NOT NULL UNIQUE,"
+               + "password TEXT NOT NULL"
+               + ");";
+
+    
+    String createQuizzesTable = "CREATE TABLE IF NOT EXISTS quizzes ("
+                                + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                + "user_id INTEGER NOT NULL,"
+                                + "title TEXT NOT NULL,"
+                                + "FOREIGN KEY(user_id) REFERENCES users(id)"
+                                + ");";
+    String createFlashcardsTable = "CREATE TABLE IF NOT EXISTS flashcards ("
+                                + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                                + "quiz_id INTEGER NOT NULL,"
+                                +"question TEXT NOT NULL,"
+                                + "answer TEXT NOT NULL,"
+                                +"FOREIGN KEY(quiz_id) REFERENCES quizzes(id)"
+                                +");";
+    
+    try (Connection conn = DriverManager.getConnection(url);
+         Statement stmt = conn.createStatement()) {
+        
+        stmt.execute(createUsersTable);
+        stmt.execute(createQuizzesTable);
+        stmt.execute(createFlashcardsTable);
+        System.out.println("ALL tables created or already exist.");
+        
+    } catch (SQLException e) {
+        System.out.println("Error creating users table");
+        e.printStackTrace();
+    }
+}
+
+public static void RegisterAccount(){
+    String url = "jdbc:sqlite:C:/Users/tyler/Downloads/QuizAppAttempt/quizAppAttempt.db";
+    System.out.println("Please enter your username.");
+
+    String Username = scanner.nextLine();
+
+    System.out.println("Please enter your password");
+
+    String Password = scanner.nextLine();
+
+    String sql = "INSERT INTO users(username, password) VALUES(?, ?)";
+
+    try (Connection conn = DriverManager.getConnection(url);
+        java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)){
+
+            pstmt.setString(1, Username);
+            pstmt.setString(2, Password);
+
+            pstmt.executeUpdate();
+            System.out.println("Account Created successfully");
+        }
+        catch (SQLException e) {
+            if (e.getMessage().contains("UNIQUE")) {
+
+                System.out.println("That username has been taken already.");
+            }
+
+            else {
+                System.out.println("Error creating account");
+                e.printStackTrace();
+            }
+        }
+}
+
+public static int loginUser(){
+
+    String url = "jdbc:sqlite:C:/Users/tyler/Downloads/QuizAppAttempt/quizAppAttempt.db";
+    System.out.println("Enter your username:");
+    String Username = scanner.nextLine();
+
+    System.out.println("Enter your password:");
+    String Password = scanner.nextLine();
+
+    String sql = "SELECT * FROM users WHERE Username = ? AND Password = ?";
+    try (Connection conn = DriverManager.getConnection(url);
+    java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)){
+        pstmt.setString(1, Username);
+        pstmt.setString(2, Password);
+
+        java.sql.ResultSet rs = pstmt.executeQuery();
+
+        if (rs.next()){
+            int userId = rs.getInt("id");
+            System.out.println("Login Successful");
+           
+            return userId;
+
+        }
+
+        else {
+            System.out.println("Incorrect Login");
+            return -1;
+        }
+
+    }
+
+    catch (SQLException e){
+        System.out.println("Error loggin in");
+        e.printStackTrace();
+        return -1;
+    }
+
+
+    }
+    
+
+public static void saveQuizToDatabase(Quiz quiz, int userId) {
+
+    String url = "jdbc:sqlite:C:/Users/tyler/Downloads/QuizAppAttempt/quizAppAttempt.db";
+    String insertQuizSQL = "INSERT INTO quizzes(user_id, title) VALUES(?, ?)";
+
+    try (Connection conn = DriverManager.getConnection(url);
+    java.sql.PreparedStatement pstmt = conn.prepareStatement(insertQuizSQL, Statement.RETURN_GENERATED_KEYS)) {
+        pstmt.setInt(1, userId);
+        pstmt.setString(2, quiz.QuizName);
+        pstmt.executeUpdate();
+
+        java.sql.ResultSet generatedKeys = pstmt.getGeneratedKeys();
+
+        if (generatedKeys.next()) {
+            int quizId = generatedKeys.getInt(1);
+
+            String insertCardSQL = "INSERT INTO flashcards(quiz_id, question, answer) VALUES (?, ?, ?)";
+
+            for (FlashCards card: quiz.cards) {
+
+                try(java.sql.PreparedStatement cardStmt = conn.prepareStatement(insertCardSQL)){
+
+                    cardStmt.setInt(1, quizId);
+                    cardStmt.setString(2, card.QuizInfo);
+                    cardStmt.setString(3, card.QuizAnswer);
+                    cardStmt.executeUpdate();
+
+                }
+            }
+
+            System.out.println("Quiz and Flashcards saved to database.");
+
+        
+        }
+    }
+        catch(SQLException e) {
+            System.out.println("Error saving quiz.");
+            e.printStackTrace();
+        }
+
+
+    
+
+
+
+
+}
+
+public static ArrayList<Quiz> loadUserQuizzes(int userId){
+String url = "jdbc:sqlite:C:/Users/tyler/Downloads/QuizAppAttempt/quizAppAttempt.db";
+ArrayList<Quiz> quizzes = new ArrayList<>();
+
+String getQuizzesSQL = "SELECT * FROM QUIZZES WHERE user_id = ?";
+
+try (Connection conn = DriverManager.getConnection(url);
+    java.sql.PreparedStatement quizstmt = conn.prepareStatement(getQuizzesSQL)){
+        quizstmt.setInt(1, userId);
+        java.sql.ResultSet quizRs = quizstmt.executeQuery();
+
+        while (quizRs.next()){
+            int quizId = quizRs.getInt("id");
+            String title = quizRs.getString("title");
+            
+            ArrayList<FlashCards> flashcards = new ArrayList<>();
+
+            String getFlashcardsSQL = "SELECT * FROM flashcards WHERE quiz_id = ? ";
+
+            try (java.sql.PreparedStatement flashcardStmt = conn.prepareStatement(getFlashcardsSQL)){
+                flashcardStmt.setInt(1, quizId);
+                java.sql.ResultSet flashcardRs = flashcardStmt.executeQuery();
+
+                while (flashcardRs.next()) {
+                    String question = flashcardRs.getString("question");
+                    String answer = flashcardRs.getString("answer");
+                    flashcards.add(new FlashCards(question, answer));
+                }
+
+
+            }
+
+            quizzes.add(new Quiz(title, flashcards));
+
+        }
+
+
+    }
+    catch(SQLException e) {
+        System.out.println("Error loading quizzes");
+        e.printStackTrace();
+    }
+
+
+
+return quizzes;
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+    
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
