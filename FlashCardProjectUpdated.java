@@ -5,6 +5,12 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.SecureRandom;
+import java.util.Base64;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.PBEKeySpec;
 
 public class FlashCardProjectUpdated{
 static Scanner scanner = new Scanner(System.in);
@@ -14,6 +20,8 @@ static Scanner scanner = new Scanner(System.in);
 // Class pathways shown above^^^
 
 public static void main(String[] args ){
+    
+    
     ArrayList<Quiz> MassFlashCardHolder = new ArrayList<>();
     createUsersTable();
     testDatabaseConnection();
@@ -505,7 +513,8 @@ public static void createUsersTable() {
     String createUsersTable = "CREATE TABLE IF NOT EXISTS users ("
                + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                + "username TEXT NOT NULL UNIQUE,"
-               + "password TEXT NOT NULL"
+               + "password TEXT NOT NULL,"
+               + "salt TEXT NOT NULL"
                + ");";
 
     
@@ -547,13 +556,19 @@ public static void RegisterAccount(){
 
     String Password = scanner.nextLine();
 
-    String sql = "INSERT INTO users(username, password) VALUES(?, ?)";
+    String salt = PasswordUtil.generateSalt();
+    String hashedPassword = PasswordUtil.hashPassword(Password, salt);
+
+
+
+    String sql = "INSERT INTO users(username, password, salt) VALUES(?, ?, ?)";
 
     try (Connection conn = DriverManager.getConnection(url);
         java.sql.PreparedStatement pstmt = conn.prepareStatement(sql)){
 
             pstmt.setString(1, Username);
             pstmt.setString(2, Password);
+            pstmt.setString(3, salt);
 
             pstmt.executeUpdate();
             System.out.println("Account Created successfully");
@@ -713,6 +728,38 @@ return quizzes;
 
 
 
+public class PasswordUtil {
+    
+
+    public static String generateSalt() {
+        SecureRandom sr = new SecureRandom();
+        byte[] salt = new byte [16];
+        sr.nextBytes(salt);
+        return Base64.getEncoder().encodeToString(salt);
+
+    }
+
+    public static String hashPassword(String password, String salt){
+        try {
+            PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt.getBytes(), 65536, 128);
+            SecretKeyFactory skf = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+            byte [] hash = skf.generateSecret(spec).getEncoded();
+            return Base64.getEncoder().encodeToString(hash);
+    }
+
+    catch (NoSuchAlgorithmException | InvalidKeySpecException e){
+        throw new RuntimeException("Error while hashing password", e);
+    }
+
+}
+
+    public static boolean verifyPassword(String enteredPassword, String storedHash, String salt ){
+        String hashedEnteredPassword = hashPassword(enteredPassword, salt);
+        return hashedEnteredPassword.equals(storedHash);
+    }
+
+
+}
 
 
 
@@ -721,6 +768,25 @@ return quizzes;
 
 
 
+
+public static void deleteData(){  // This is for whenever you want to delete the data within all tables!
+String url = "jdbc:sqlite:C:/Users/tyler/Downloads/QuizAppAttempt/quizAppAttempt.db";
+
+try (Connection conn = DriverManager.getConnection(url);
+     Statement stmt = conn.createStatement()) {
+
+    stmt.executeUpdate("DELETE FROM flashcards;");
+    stmt.executeUpdate("DELETE FROM quizzes;");
+    stmt.executeUpdate("DELETE FROM users;");
+    System.out.println("All data wiped — tables are now empty.");
+
+} catch (SQLException e) {
+    e.printStackTrace();
+}
+
+
+
+}
 
     
 }
